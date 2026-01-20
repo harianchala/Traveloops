@@ -1,12 +1,11 @@
-// components/auth/auth-provider.tsx
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import type { Session, User } from "@supabase/supabase-js"
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js"
 
 interface AuthContextType {
-  user: User | null
+  user: SupabaseUser | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: string }>
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>
@@ -15,38 +14,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        setUser(data.session?.user ?? null)
-      } catch (err) {
-        console.error("Auth session fetch error:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
+    // Load initial session
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null)
+      setLoading(false)
+    })
 
-    getSession()
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
       setUser(session?.user ?? null)
     })
 
-    return () => sub?.subscription?.unsubscribe?.()
+    return () => subscription.unsubscribe()
   }, [])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
-
-    // ✅ Wait for session to be set
-    const { data } = await supabase.auth.getSession()
-    setUser(data.session?.user ?? null)
     return {}
   }
 
@@ -72,7 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   )
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) throw new Error("useAuth must be used within AuthProvider")
   return context
