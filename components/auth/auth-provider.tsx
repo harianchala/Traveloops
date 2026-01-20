@@ -34,11 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
     return {}
   }
@@ -47,11 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { name },
-      },
+      options: { data: { name } },
     })
-
     if (error) return { error: error.message }
     return {}
   }
@@ -72,4 +65,15 @@ export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) throw new Error("useAuth must be used within AuthProvider")
   return context
+}
+
+// ---------------------
+// Add these for emergency/admin pages
+// ---------------------
+export function lockSystem() {
+  console.log("System locked")
+}
+
+export function unlockSystem() {
+  console.log("System unlocked")
 }
