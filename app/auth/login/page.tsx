@@ -13,11 +13,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // ✅ Redirect if user is already logged in
+  // Redirect logged-in users
   useEffect(() => {
-    if (!authLoading && user) {
-      router.replace("/dashboard")
-    }
+    if (!authLoading && user) router.replace("/dashboard")
   }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,11 +24,8 @@ export default function LoginPage() {
     setError("")
 
     const result = await signIn(email, password)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      router.replace("/dashboard") // redirect on successful login
-    }
+    if (result.error) setError(result.error)
+    else router.replace("/dashboard")
 
     setLoading(false)
   }
@@ -39,10 +34,10 @@ export default function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
-      <button type="submit" disabled={loading}>Sign In</button>
-      {error && <p>{error}</p>}
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
+      <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />
+      <button type="submit" disabled={loading}>{loading ? "Signing In..." : "Sign In"}</button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </form>
   )
 }
