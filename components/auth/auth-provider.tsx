@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -53,17 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (error) return { error: error.message }
-
-    // Create profile row (RLS-safe)
-    if (data.user) {
-      await supabase.from("profiles").insert({
-        id: data.user.id,
-        email: data.user.email,
-        name,
-        role: "user",
-      })
-    }
-
     return {}
   }
 

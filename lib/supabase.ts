@@ -7,7 +7,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+<<<<<<< HEAD
     detectSessionInUrl: true, // ✅ REQUIRED for email confirmation
+=======
+    detectSessionInUrl: true, // ✅ REQUIRED for email confirmation & magic links
+>>>>>>> 7e186a3 (updates)
   },
 })
 
