@@ -2,10 +2,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
 export async function middleware(request: NextRequest) {
-  // Prepare response
   let response = NextResponse.next()
 
-  // Create Supabase server client from SSR package
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,11 +21,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get session
   const { data } = await supabase.auth.getSession()
 
-  // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !data.session) {
+  const pathname = request.nextUrl.pathname
+
+  // ✅ ALLOW auth-related routes ALWAYS
+  if (
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next")
+  ) {
+    return response
+  }
+
+  // ✅ Protect dashboard only AFTER session exists
+  if (pathname.startsWith("/dashboard") && !data.session) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth/login"
     return NextResponse.redirect(url)
