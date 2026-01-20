@@ -20,38 +20,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Initialize session on mount
   useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession()
+    supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
-    }
+    })
 
-    getSession()
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
       setUser(session?.user ?? null)
+      if (session?.user) {
+        router.replace("/dashboard") // ✅ Redirect after sign-in
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [router])
 
-  // ✅ Sign in function
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
-
-    // Update state immediately after login
-    setUser(data.user ?? null)
-
-    // Redirect after successful login
-    router.replace("/dashboard")
-
     return {}
   }
 
-  // ✅ Sign up function
   const signUp = async (email: string, password: string, name: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -60,15 +50,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     if (error) return { error: error.message }
 
-    setUser(data.user ?? null)
+    if (data.user) {
+      await supabase.from("profiles").insert({
+        id: data.user.id,
+        email: data.user.email,
+        name,
+        role: "user",
+      })
+    }
     return {}
   }
 
-  // ✅ Sign out function
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
-    router.replace("/auth/login")
+    router.replace("/auth/login") // ✅ Redirect after sign-out
   }
 
   return (
@@ -78,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Hook for using auth context
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) throw new Error("useAuth must be used within AuthProvider")
