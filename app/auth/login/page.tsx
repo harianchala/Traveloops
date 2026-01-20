@@ -1,45 +1,55 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from "@/components/auth/auth-provider"
 import { Plane, Loader2, AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
+  const { user, loading: authLoading, signIn } = useAuth()
+  const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
-  const router = useRouter()
+  const [error, setError] = useState("")
+
+  // ✅ Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard")
+    }
+  }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    try {
-      const result = await signIn(email, password)
-      if (result.error) {
-  setError(result.error)
-  return
-}
-
-router.replace("/dashboard")
-
-    } catch (err) {
-      setError("An unexpected error occurred")
-    } finally {
+    const result = await signIn(email, password)
+    if (result.error) {
+      setError(result.error)
       setLoading(false)
+      return
     }
+
+    // Wait for auth state to update before redirect
+    const checkUser = setInterval(() => {
+      if (user) {
+        clearInterval(checkUser)
+        router.replace("/dashboard")
+      }
+    }, 100)
+
+    setLoading(false)
   }
+
+  if (authLoading) return <p>Loading...</p>
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -57,7 +67,7 @@ router.replace("/dashboard")
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>Enter your email and password to access your account</CardDescription>
+            <CardDescription>Enter your email and password</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,15 +114,6 @@ router.replace("/dashboard")
                 )}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
-                  Sign up here
-                </Link>
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
