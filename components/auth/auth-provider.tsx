@@ -21,22 +21,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data } = await supabase.auth.getSession()
-      setUser(data.session?.user ?? null)
-      setLoading(false)
+      try {
+        const { data } = await supabase.auth.getSession()
+        setUser(data.session?.user ?? null)
+      } catch (err) {
+        console.error("Auth session fetch error:", err)
+      } finally {
+        setLoading(false)
+      }
     }
+
     getSession()
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
 
-    return () => subscription?.subscription?.unsubscribe?.()
+    return () => sub?.subscription?.unsubscribe?.()
   }, [])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
+
+    // ✅ Wait for session to be set
+    const { data } = await supabase.auth.getSession()
+    setUser(data.session?.user ?? null)
     return {}
   }
 
